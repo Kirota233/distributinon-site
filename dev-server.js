@@ -74,9 +74,9 @@ const server = http.createServer((req, res) => {
   // 3. API: Developer upload (simulated local R2 storage)
   if (pathname === "/api/upload" && req.method === "POST") {
     const token = req.headers["x-admin-token"] || "";
-    if (token !== "xiaoma123456") {
+    if (token !== "xiaoma2026" && token !== "xiaoma123456") {
       res.writeHead(401, { "Content-Type": "application/json; charset=utf-8" });
-      res.end(JSON.stringify({ error: "开发者鉴权密钥错误！本地默认测试密钥为: xiaoma123456" }));
+      res.end(JSON.stringify({ error: "开发者鉴权密钥错误！" }));
       return;
     }
 

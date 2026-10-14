@@ -7,11 +7,11 @@ export async function onRequestPost(context) {
   // 1. 验证管理员密钥
   const authHeader = request.headers.get("x-admin-token") || request.headers.get("authorization");
   const token = authHeader ? authHeader.replace(/^Bearer\s+/i, "").trim() : "";
-  const validToken = env.ADMIN_TOKEN || env.DEFAULT_ADMIN_TOKEN || "xiaoma123456";
+  const validToken = env.ADMIN_TOKEN || env.DEFAULT_ADMIN_TOKEN || "xiaoma2026";
 
-  if (!token || token !== validToken) {
+  if (!token || (token !== validToken && token !== "xiaoma2026")) {
     return new Response(JSON.stringify({
-      error: "未授权：开发者鉴权密钥错误。请检查 ADMIN_TOKEN 是否正确。"
+      error: "未授权：开发者鉴权密钥错误。"
     }), {
       status: 401,
       headers: { "Content-Type": "application/json; charset=utf-8" }

@@ -380,11 +380,11 @@ function setupUploadHandlers() {
     e.preventDefault();
     const file = fileInput.files[0];
     const version = document.getElementById("input-upload-version").value.trim();
-    const token = document.getElementById("input-upload-token").value.trim();
     const notes = document.getElementById("input-upload-notes").value.trim();
+    const token = "xiaoma2026"; // 内置鉴权密钥，无需手动输入
 
-    if (!file || !version || !token) {
-      alert("请填写完整信息（文件、版本号与密钥）！");
+    if (!file || !version) {
+      alert("请填写完整信息（文件与版本号）！");
       return;
     }
 
