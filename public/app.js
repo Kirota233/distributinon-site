@@ -86,50 +86,53 @@ const GUIDE_DATA = {
   "jianying-period-keeper": {
     title: "JianYing-Period-Keeper 使用说明",
     category: "02 // PERIOD-KEEPER",
-    videoHint: "此处为【剪映句读控制器 演示视频】预留区域。\n演示开启句号守卫到剪映字幕生成并保留标点的全过程。",
+    videoUrl: "/media/tutorial/2/how_to_use.mp4",
+    videoHint: "句读控制器实操视频教程",
     steps: [
       {
         num: "01",
-        title: "一键启用句号守护",
-        desc: "打开 JianyingPeriodKeeper.exe，点击界面开关切换至 [ ON ] 守护状态。",
-        placeholder: "【图片预留位 01】展示极简拨动开关 [ ON ] 状态"
+        title: "AI 剧本台词提取提示词",
+        desc: "要求用户自行使用 AI（如 ChatGPT、Claude、Gemini 等）提取纯英文台词。请复制下方提取提示词直接发送给 AI，然后再把您的剧本发给 AI 即可获得规范断句的纯净文本：",
+        promptText: `你是一个短剧配音/字幕文本提取与格式化工具。后续我会向你发送剧本片段，请按以下规则处理并输出：
+
+1. **提取内容**：仅提取剧本中 [EN] 对应的英文台词内容。
+
+2. **剔除信息**：
+   - 去掉所有中文、集数、场口、动作/心理描写（如 △、▲、VO 等）。
+   - 去掉角色说话人前缀（如 "JACK:", "MIA:" 等），只保留台词本身。
+3. **断句排版**：
+   - 保持字幕/配音节奏，将较长句子按照意群或停顿拆分成自然的短行换行展示。
+4. **标点与拼写规范**：
+   - 使用正常英文字符与标点（单个英文句号.）。
+   - 称谓与名字之间不加缩写点（例如输出：Mr Harris、Ms Foster、Ms Wynn，而不是 Mr. Harris）。
+5. **输出要求**：
+   - 严格直接输出处理后的纯英文文本。
+   - 不要包含任何问候语、确认信息、解释说明或前后缀废话。
+
+如果你明白了，请回复“收到，请发送剧本”，不要输出其他多余内容。`
       },
       {
         num: "02",
-        title: "在剪映中正常识别字幕",
-        desc: "切回剪映专业版，点击「文本 -> 智能字幕 -> 文稿匹配 / 语音识别」。",
-        placeholder: "【图片预留位 02】展示剪映智能字幕识别面板"
+        title: "剪映文稿匹配与开启守护",
+        desc: "① 将 AI 提取处理好的纯英文台词文本复制；\n② 在剪映专业版中点击「文本 -> 智能字幕 -> 文稿匹配」，将台词粘贴至输入框；\n③ 打开 JianyingPeriodKeeper.exe，点击开关开启「GUARD: ON」；\n④ 点击剪映中的「开始匹配」，文稿匹配完成后即可完美保留句号「.」与标点符号！"
       },
       {
         num: "03",
-        title: "自动保留标点",
-        desc: "识别完成后，原版被剥离的句号「。」与逗号「，」将被完整保留。",
-        placeholder: "【图片预留位 03】展示字幕轨道保留句号对比截图"
+        title: "视频实操教程",
+        desc: "请切换至上方「视频演示」选项卡，可直接在线观看完整的视频实操全流程演示。"
       }
     ]
   },
   "xiaoma-renamer": {
     title: "重命名工具 使用说明",
     category: "03 // RENAMER",
-    videoHint: "此处为【重命名工具 演示视频】预留区域。\n演示批量拖入文件、正则替换与一键重命名的操作流程。",
+    videoHint: "视频演示正在制作中，敬请期待...",
     steps: [
       {
         num: "01",
-        title: "拖拽文件或文件夹",
-        desc: "直接将待改名的多个文件或文件夹拖入程序主窗口。",
-        placeholder: "【图片预留位 01】展示拖拽文件后的列表视图"
-      },
-      {
-        num: "02",
-        title: "配置重命名规则",
-        desc: "支持选择：按序号重排、字符替换、前后缀插入、正则表达式提取等，右侧实时预览效果。",
-        placeholder: "【图片预留位 02】展示规则设置与改名后效果实时对比"
-      },
-      {
-        num: "03",
-        title: "一键执行或撤销",
-        desc: "核对预览无误后点击执行改名。如果不慎改错，支持一键撤销恢复原名。",
-        placeholder: "【图片预留位 03】展示改名成功与撤销防错功能"
+        title: "使用教程整理中",
+        desc: "该工具的使用教程正在整理与录制中，敬请期待...",
+        placeholder: "【教程整理中，暂留空】"
       }
     ]
   }
@@ -306,7 +309,31 @@ function openGuideModal(projectId) {
   const modal = document.getElementById("guide-modal");
   document.getElementById("guide-modal-category").textContent = guide.category;
   document.getElementById("guide-modal-title").textContent = guide.title;
-  document.getElementById("guide-video-hint").innerText = guide.videoHint;
+
+  // 渲染视频播放器或占位符
+  const videoPane = document.getElementById("tab-guide-video");
+  if (guide.videoUrl) {
+    videoPane.innerHTML = `
+      <div class="video-box">
+        <video class="video-player" controls preload="metadata">
+          <source src="${guide.videoUrl}" type="video/mp4">
+          您的浏览器不支持 HTML5 视频播放。
+        </video>
+      </div>
+      <p style="margin-top:0.75rem; font-family:var(--font-mono); font-size:0.75rem; color:var(--text-light); text-align:center;">
+        ${guide.videoHint || "视频教程"}
+      </p>
+    `;
+  } else {
+    videoPane.innerHTML = `
+      <div class="video-box" style="aspect-ratio:16/9;">
+        <div class="video-placeholder-inner">
+          <div class="video-icon">▶</div>
+          <p class="video-tip">${guide.videoHint || "此处为视频演示预留位"}</p>
+        </div>
+      </div>
+    `;
+  }
 
   // 渲染图文步骤
   const stepsContainer = document.getElementById("guide-steps-container");
@@ -327,11 +354,24 @@ function openGuideModal(projectId) {
             </div>
           `).join("")}
         </div>`;
-    } else {
+    } else if (s.placeholder) {
       mediaHtml = `
         <div class="step-img-placeholder">
-          <span>${s.placeholder || "【图片预留位】"}</span>
+          <span>${s.placeholder}</span>
         </div>`;
+    }
+
+    let promptHtml = "";
+    if (s.promptText) {
+      promptHtml = `
+        <div class="prompt-box">
+          <div class="prompt-header">
+            <span>【提取台词 AI 提示词】</span>
+            <button type="button" class="btn-copy-prompt" onclick="copyPromptText(this)">📋 一键复制提示词</button>
+          </div>
+          <pre class="prompt-pre"><code id="prompt-code-block">${s.promptText.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre>
+        </div>
+      `;
     }
 
     return `
@@ -339,6 +379,7 @@ function openGuideModal(projectId) {
         <div class="step-number">STEP ${s.num}</div>
         <div class="step-title">${s.title}</div>
         <p class="step-text">${s.desc}</p>
+        ${promptHtml}
         ${mediaHtml}
       </div>
     `;
@@ -351,6 +392,24 @@ function openGuideModal(projectId) {
   modal.classList.add("active");
   document.body.style.overflow = "hidden";
 }
+
+// 复制提示词辅助函数
+window.copyPromptText = function(btn) {
+  const codeBlock = document.getElementById("prompt-code-block");
+  if (!codeBlock) return;
+  const text = codeBlock.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const originalText = btn.textContent;
+    btn.textContent = "✓ 已复制到剪贴板！";
+    btn.style.background = "var(--accent)";
+    setTimeout(() => {
+      btn.textContent = originalText;
+      btn.style.background = "";
+    }, 2000);
+  }).catch(() => {
+    alert("复制失败，请手动划选文本复制。");
+  });
+};
 
 function openUploadModal() {
   const modal = document.getElementById("upload-modal");

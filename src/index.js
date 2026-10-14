@@ -50,6 +50,12 @@ export default {
       return handleXiaoMaDownload(fileName, env);
     }
 
+    // 5. Route: Stream media (images/videos) from R2
+    if (path.startsWith("/media/")) {
+      const rawPath = decodeURIComponent(path.replace("/media/", ""));
+      return handleMediaStream(request, rawPath, env);
+    }
+
     // 5. API: Health Check & Environment Diagnostics
     if (path === "/api/health") {
       return new Response(JSON.stringify({
@@ -332,4 +338,58 @@ async function handleXiaoMaDownload(fileName, env) {
   return new Response(object.body, {
     headers
   });
+}
+
+/* ==========================================================================
+   HANDLER: STREAM MEDIA (IMAGES & VIDEOS) FROM R2
+   ========================================================================== */
+async function handleMediaStream(request, rawPath, env) {
+  if (!env.RELEASES_BUCKET) {
+    return new Response("Cloudflare R2 is not bound.", { status: 503 });
+  }
+
+  const r2Key = rawPath.startsWith("tutorial/") ? rawPath : `tutorial/${rawPath}`;
+  const rangeHeader = request.headers.get("range");
+
+  let object = await env.RELEASES_BUCKET.get(r2Key, {
+    range: rangeHeader ? request.headers : undefined,
+    onlyIf: request.headers
+  });
+
+  if (!object && r2Key !== rawPath) {
+    object = await env.RELEASES_BUCKET.get(rawPath, {
+      range: rangeHeader ? request.headers : undefined,
+      onlyIf: request.headers
+    });
+  }
+
+  if (!object) {
+    return new Response(`404: Media file "${rawPath}" not found in R2.`, { status: 404 });
+  }
+
+  const extMatch = r2Key.match(/\.[a-zA-Z0-9]+$/);
+  const ext = extMatch ? extMatch[0].toLowerCase() : "";
+  const mimeTypes = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+    ".svg": "image/svg+xml",
+    ".mp4": "video/mp4",
+    ".webm": "video/webm"
+  };
+  const contentType = mimeTypes[ext] || "application/octet-stream";
+
+  const headers = new Headers();
+  object.writeHttpMetadata(headers);
+  headers.set("Content-Type", contentType);
+  headers.set("Accept-Ranges", "bytes");
+  headers.set("Cache-Control", "public, max-age=31536000, immutable");
+
+  if (object.range) {
+    headers.set("Content-Range", `bytes ${object.range.offset}-${object.range.offset + object.range.length - 1}/${object.size}`);
+    return new Response(object.body, { status: 206, headers });
+  }
+
+  return new Response(object.body, { status: 200, headers });
 }

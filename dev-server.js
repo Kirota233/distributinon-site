@@ -141,6 +141,33 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // 4.1 Media streaming (images & videos from tutorial)
+  if (pathname.startsWith("/media/")) {
+    const subPath = decodeURIComponent(pathname.replace("/media/", ""));
+    const possiblePaths = [
+      path.join(__dirname, "public", "tutorial", subPath.replace(/^tutorial\//, "")),
+      path.join(__dirname, "tutorial", subPath.replace(/^tutorial\//, "")),
+      path.join(__dirname, "public", subPath),
+      path.join(__dirname, subPath)
+    ];
+    const mediaFile = possiblePaths.find(p => fs.existsSync(p));
+    if (mediaFile) {
+      const ext = path.extname(mediaFile).toLowerCase();
+      const mimeTypes = {
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".mp4": "video/mp4",
+        ".webp": "image/webp"
+      };
+      res.writeHead(200, {
+        "Content-Type": mimeTypes[ext] || "application/octet-stream",
+        "Accept-Ranges": "bytes"
+      });
+      fs.createReadStream(mediaFile).pipe(res);
+      return;
+    }
+  }
+
   // 5. Static file serving (HTML, CSS, JS)
   let filePath = path.join(PUBLIC_DIR, pathname === "/" ? "index.html" : pathname);
   if (!fs.existsSync(filePath)) {

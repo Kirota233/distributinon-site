@@ -395,11 +395,10 @@ html, body {
   display: block;
 }
 
-/* 视频预留区 */
+/* 视频播放器与预留区 */
 .video-box {
   width: 100%;
-  aspect-ratio: 16 / 9;
-  background: #111111;
+  background: #000000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -407,20 +406,60 @@ html, body {
   border: 1px solid var(--border-dark);
 }
 
-.video-placeholder-inner {
-  text-align: center;
+.video-player {
+  width: 100%;
+  max-height: 520px;
+  background: #000000;
+  display: block;
+  outline: none;
 }
 
-.video-icon {
-  font-size: 2.5rem;
+/* 提示词卡片与复制按钮 */
+.prompt-box {
+  background: var(--bg);
+  border: 1px solid var(--border-dark);
+  padding: 1rem;
+  margin: 0.75rem 0 0.5rem;
+}
+
+.prompt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-weight: 700;
   color: var(--accent);
-  margin-bottom: 0.5rem;
 }
 
-.video-tip {
-  font-size: 0.85rem;
-  color: #AAAAAA;
-  line-height: 1.6;
+.btn-copy-prompt {
+  background: var(--border-dark);
+  color: #FFFFFF;
+  border: none;
+  padding: 0.35rem 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-copy-prompt:hover {
+  background: var(--accent);
+}
+
+.prompt-pre {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 0.85rem;
+  white-space: pre-wrap;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  line-height: 1.65;
+  color: var(--text);
+  max-height: 260px;
+  overflow-y: auto;
 }
 
 /* 图文步骤 */
