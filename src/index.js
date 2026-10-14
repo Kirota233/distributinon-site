@@ -51,8 +51,8 @@ export default {
     }
 
     // 5. Route: Stream media (images/videos) from R2
-    if (path.startsWith("/media/")) {
-      const rawPath = decodeURIComponent(path.replace("/media/", ""));
+    if (path.startsWith("/media/") || path.startsWith("/tutorial/")) {
+      const rawPath = decodeURIComponent(path.replace(/^\/(media|tutorial)\//, ""));
       return handleMediaStream(request, rawPath, env);
     }
 

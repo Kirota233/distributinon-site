@@ -3,7 +3,7 @@ local_r2_storage/
 .wrangler/
 .DS_Store
 Thumbs.db
-tutorial/
-totorial/
-public/tutorial/
-public/totorial/
+/tutorial/
+/totorial/
+/public/tutorial/
+/public/totorial/

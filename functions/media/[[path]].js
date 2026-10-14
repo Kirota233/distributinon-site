@@ -30,9 +30,7 @@ export async function onRequestGet(context) {
   }
 
   const rawPath = pathParts.map(p => decodeURIComponent(p)).join("/");
-  // Allow paths like "tutorial/1/01.png" or just "1/01.png"
   const r2Key = rawPath.startsWith("tutorial/") ? rawPath : `tutorial/${rawPath}`;
-
   const rangeHeader = request.headers.get("range");
 
   try {
@@ -40,6 +38,21 @@ export async function onRequestGet(context) {
       range: rangeHeader ? request.headers : undefined,
       onlyIf: request.headers
     });
+
+    // Try space vs underscore
+    if (!object) {
+      object = await env.RELEASES_BUCKET.get(r2Key.replace(/_/g, " "), {
+        range: rangeHeader ? request.headers : undefined,
+        onlyIf: request.headers
+      });
+    }
+
+    if (!object) {
+      object = await env.RELEASES_BUCKET.get(r2Key.replace(/ /g, "_"), {
+        range: rangeHeader ? request.headers : undefined,
+        onlyIf: request.headers
+      });
+    }
 
     // If not found with tutorial/ prefix, try exact rawPath
     if (!object && r2Key !== rawPath) {

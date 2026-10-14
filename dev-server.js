@@ -142,8 +142,8 @@ const server = http.createServer((req, res) => {
   }
 
   // 4.1 Media streaming (images & videos from tutorial)
-  if (pathname.startsWith("/media/")) {
-    const subPath = decodeURIComponent(pathname.replace("/media/", ""));
+  if (pathname.startsWith("/media/") || pathname.startsWith("/tutorial/")) {
+    const subPath = decodeURIComponent(pathname.replace(/^\/(media|tutorial)\//, ""));
     const possiblePaths = [
       path.join(__dirname, "public", "tutorial", subPath.replace(/^tutorial\//, "")),
       path.join(__dirname, "tutorial", subPath.replace(/^tutorial\//, "")),
