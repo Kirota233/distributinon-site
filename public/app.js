@@ -49,21 +49,37 @@ const GUIDE_DATA = {
     steps: [
       {
         num: "01",
-        title: "填入 Gemini API Key",
-        desc: "首次启动程序后，在配置项填入您的 Google Gemini API Key（支持官方免费 Key），用于视觉定位剪映草稿。",
-        placeholder: "【图片预留位 01】建议尺寸 16:9，展示 API 填入面板"
+        title: "确认网络环境并启动工具",
+        desc: "确认能访问外网（请勿使用香港 IP/节点），然后打开工具。",
+        img: "tutorial/1/01_main_window_ready.png"
       },
       {
         num: "02",
-        title: "准备剪映草稿",
-        desc: "在剪映专业版中创建并保存好需要导出的各草稿项目。",
-        placeholder: "【图片预留位 02】展示剪映草稿列表"
+        title: "输入 API Key 并配置模型",
+        desc: "输入 API Key 并保存；选择一个模型（推荐使用新模型，如果报错可换成 3.5flash 等模型重试）。",
+        img: "tutorial/1/02_settings_api_model.png"
       },
       {
         num: "03",
-        title: "启动批量自动渲染",
-        desc: "点击开始队列，程序自动逐个打开剪映项目并完成导出。",
-        placeholder: "【图片预留位 03】展示自动化渲染队列界面"
+        title: "视频批量导出",
+        desc: "① 第一次使用点击「引导录制 F8」，并按操作录制坐标，待显示「坐标已就绪」；\n② 打开剪映并将其窗口最大化，点击「AI 扫描首页草稿」；\n③ 识别到草稿后点击识别出的草稿名，点击「从选中项开始导出」。",
+        images: [
+          { label: "1. 引导录制坐标 (pic3)", src: "tutorial/1/03_guide_record_button.png" },
+          { label: "2. 点击「AI 扫描首页草稿」 (pic4)", src: "tutorial/1/04_ai_scan_drafts_button.png" },
+          { label: "3. 选中草稿并从选中项导出 (pic5)", src: "tutorial/1/05_select_and_export_draft.png" }
+        ]
+      },
+      {
+        num: "04",
+        title: "字幕提取功能",
+        desc: "① 首先从剪映云空间下载你需要导出的草稿（下载后请勿打开）；\n② 选择你需要导出的剪映草稿路径（注意：程序会处理该路径下的所有草稿！）；\n③ 点击「提取字幕 & 删除轨道 -> 桌面/srt」，程序将自动剔除草稿原字幕轨道，并将提取出的 SRT 字幕文件保存到桌面。",
+        img: "tutorial/1/06_subtitle_extract.png"
+      },
+      {
+        num: "05",
+        title: "批量重命名",
+        desc: "① 拖放或点击「选择文件」添加需要导出的文件（支持所有格式，包括字幕、视频、音频、图片等）；\n② 参考命名格式，填入需要修改的名称规则（例如：短剧名称_第X集）；\n③ 点击「AI 预览重命名」，在下方表格核对原文件名与新文件名无误后，点击「执行重命名」即可一键完成。",
+        img: "tutorial/1/07_batch_rename.png"
       }
     ]
   },
@@ -294,16 +310,39 @@ function openGuideModal(projectId) {
 
   // 渲染图文步骤
   const stepsContainer = document.getElementById("guide-steps-container");
-  stepsContainer.innerHTML = guide.steps.map(s => `
-    <div class="step-card">
-      <div class="step-number">${s.num}</div>
-      <div class="step-title">${s.title}</div>
-      <div class="step-img-placeholder">
-        <span>${s.placeholder}</span>
+  stepsContainer.innerHTML = guide.steps.map(s => {
+    let mediaHtml = "";
+    if (s.img) {
+      mediaHtml = `
+        <div class="step-img-box">
+          <img src="${s.img}" alt="${s.title}" loading="lazy">
+        </div>`;
+    } else if (s.images && s.images.length > 0) {
+      mediaHtml = `
+        <div class="subimages-grid">
+          ${s.images.map(sub => `
+            <div class="subimage-item">
+              <span class="subimage-label">${sub.label}</span>
+              <img src="${sub.src}" alt="${sub.label}" loading="lazy">
+            </div>
+          `).join("")}
+        </div>`;
+    } else {
+      mediaHtml = `
+        <div class="step-img-placeholder">
+          <span>${s.placeholder || "【图片预留位】"}</span>
+        </div>`;
+    }
+
+    return `
+      <div class="step-card">
+        <div class="step-number">STEP ${s.num}</div>
+        <div class="step-title">${s.title}</div>
+        <p class="step-text">${s.desc}</p>
+        ${mediaHtml}
       </div>
-      <p class="step-text">${s.desc}</p>
-    </div>
-  `).join("");
+    `;
+  }).join("");
 
   // 默认切换到第一张选项卡
   const firstTab = document.querySelector(".tab-btn[data-tab-target='tab-guide-steps']");
