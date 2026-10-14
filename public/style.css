@@ -253,6 +253,35 @@ html, body {
   border-color: var(--accent);
 }
 
+.upload-hint {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-light);
+  font-family: var(--font-mono);
+  margin-top: -0.35rem;
+}
+
+/* 网站底部贡献说明 */
+.site-footer {
+  margin-top: 3.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.site-footer a {
+  color: var(--accent);
+  text-decoration: underline;
+  font-weight: 700;
+  margin: 0 0.15rem;
+}
+
+.site-footer a:hover {
+  color: var(--accent-hover);
+}
+
 /* 节点下拉与仓库直链 */
 .mirror-box {
   display: flex;
