@@ -1,0 +1,24 @@
+name = "swiss-distribution-matrix"
+main = "src/index.js"
+compatibility_date = "2024-09-23"
+
+# Cloudflare Workers Static Assets (serves ./public directory automatically)
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# Environment Variables
+[vars]
+# 默认演示密钥（生产部署时请通过 npx wrangler secret put ADMIN_TOKEN 设置强密码）
+DEFAULT_ADMIN_TOKEN = "xiaoma123456"
+
+# ==============================================================================
+# Cloudflare R2 存储桶绑定配置 (开发者分发文件存储)
+# ==============================================================================
+# 步骤 1: 在 Cloudflare Dashboard -> R2 中创建一个存储桶 (例如: xiaoma-releases)
+# 步骤 2: 保持下面的 binding 名称为 RELEASES_BUCKET，将 bucket_name 替换为您创建的桶名
+# ==============================================================================
+[[r2_buckets]]
+binding = "RELEASES_BUCKET"
+bucket_name = "xiaoma-releases"
+# preview_bucket_name = "xiaoma-releases-preview" # 可选本地开发预览桶

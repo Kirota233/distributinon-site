@@ -1,0 +1,25 @@
+{
+  "name": "swiss-distribution-matrix",
+  "version": "1.0.0",
+  "description": "Swiss International Typographic Style software distribution website hosted on Cloudflare Workers and R2",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node dev-server.js",
+    "dev": "node dev-server.js",
+    "deploy": "npx wrangler deploy",
+    "cf:dev": "npx wrangler dev"
+  },
+  "keywords": [
+    "swiss-style",
+    "cloudflare-worker",
+    "cloudflare-r2",
+    "jianying-ai-pro",
+    "jianying-period-keeper",
+    "renamer"
+  ],
+  "author": "Kirota233 & XiaoMa",
+  "license": "MIT",
+  "devDependencies": {
+    "wrangler": "^3.109.2"
+  }
+}
