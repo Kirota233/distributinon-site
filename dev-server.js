@@ -181,6 +181,7 @@ const server = http.createServer((req, res) => {
     ".js": "application/javascript; charset=utf-8",
     ".json": "application/json; charset=utf-8",
     ".png": "image/png",
+    ".ico": "image/x-icon",
     ".svg": "image/svg+xml"
   };
 

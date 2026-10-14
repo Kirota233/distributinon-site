@@ -48,6 +48,19 @@ html, body {
   margin-bottom: 2.5rem;
 }
 
+.site-brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.site-logo {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 .site-title {
   font-size: clamp(2rem, 4vw, 2.75rem);
   font-weight: 900;
