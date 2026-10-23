@@ -54,9 +54,9 @@ export default {
       return handleXiaoMaLatest(env, "xiaoma-editor", DEFAULT_XIAOMA_EDITOR_META);
     }
 
-    // 3. API: Developer upload to Cloudflare R2
+    // 3. API: Developer upload to Cloudflare R2 (Single & Multipart for >100MB files)
     if (path === "/api/upload" && request.method === "POST") {
-      return handleDeveloperUpload(request, env);
+      return handleDeveloperUpload(request, url, env);
     }
 
     // 4. Route: Download Xiao Ma tool binary from R2
@@ -223,8 +223,12 @@ async function handleXiaoMaLatest(env, prefix = "xiaoma", fallbackMeta = DEFAULT
 
 /* ==========================================================================
    HANDLER: DEVELOPER UPLOAD RELEASE TO CLOUDFLARE R2
+   Supports:
+   - Multipart upload for large files (>90MB, bypassing CF Free 100MB request limit)
+     via ?action=mpu-create | mpu-part | mpu-complete
+   - Direct FormData / Binary stream upload for smaller files
    ========================================================================== */
-async function handleDeveloperUpload(request, env) {
+async function handleDeveloperUpload(request, url, env) {
   // 1. Verify Authentication Token
   const authHeader = request.headers.get("x-admin-token") || request.headers.get("authorization");
   const providedToken = authHeader ? authHeader.replace(/^Bearer\s+/i, "").trim() : "";
@@ -251,8 +255,117 @@ async function handleDeveloperUpload(request, env) {
     });
   }
 
-  // 3. Parse Multipart Form Data
+  const action = url.searchParams.get("action");
+
   try {
+    // ----------------------------------------------------------------------
+    // A. R2 Multipart Upload: Create
+    // ----------------------------------------------------------------------
+    if (action === "mpu-create") {
+      const body = await request.json();
+      const rawProject = (body.project || "xiaoma").toString().trim();
+      const prefix = rawProject === "xiaoma-editor" ? "xiaoma-editor" : "xiaoma";
+      const rawName = (body.fileName || `release-${Date.now()}.exe`).toString();
+      const safeFileName = rawName.replace(/[^\w.\-\u4e00-\u9fa5()（）\s]/g, "_").trim() || `release-${Date.now()}.exe`;
+      const r2Key = `${prefix}/releases/${safeFileName}`;
+      const asciiFallback = safeFileName.replace(/[^\x20-\x7E]/g, "_");
+      const encodedName = encodeURIComponent(safeFileName);
+
+      const multipartUpload = await env.RELEASES_BUCKET.createMultipartUpload(r2Key, {
+        httpMetadata: {
+          contentType: body.contentType || "application/octet-stream",
+          contentDisposition: `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodedName}`
+        },
+        customMetadata: {
+          version: (body.version || "v1.0.0").toString(),
+          uploadedAt: new Date().toISOString()
+        }
+      });
+
+      return new Response(JSON.stringify({
+        uploadId: multipartUpload.uploadId,
+        key: multipartUpload.key,
+        safeFileName,
+        prefix
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json; charset=utf-8" }
+      });
+    }
+
+    // ----------------------------------------------------------------------
+    // B. R2 Multipart Upload: Upload Part
+    // ----------------------------------------------------------------------
+    if (action === "mpu-part") {
+      const uploadId = url.searchParams.get("uploadId");
+      const key = url.searchParams.get("key");
+      const partNumber = parseInt(url.searchParams.get("partNumber") || "1", 10);
+
+      if (!uploadId || !key || !partNumber) {
+        return new Response(JSON.stringify({ error: "缺少分片上传参数 (uploadId, key, partNumber)" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json; charset=utf-8" }
+        });
+      }
+
+      const multipartUpload = env.RELEASES_BUCKET.resumeMultipartUpload(key, uploadId);
+      const uploadedPart = await multipartUpload.uploadPart(partNumber, request.body);
+
+      return new Response(JSON.stringify({
+        partNumber: uploadedPart.partNumber,
+        etag: uploadedPart.etag
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json; charset=utf-8" }
+      });
+    }
+
+    // ----------------------------------------------------------------------
+    // C. R2 Multipart Upload: Complete & Update latest-meta.json
+    // ----------------------------------------------------------------------
+    if (action === "mpu-complete") {
+      const body = await request.json();
+      const { uploadId, key, parts, version, fileName, fileSize, notes, project } = body;
+      const prefix = project === "xiaoma-editor" ? "xiaoma-editor" : "xiaoma";
+      const safeFileName = (fileName || key.split("/").pop()).replace(/[^\w.\-\u4e00-\u9fa5()（）\s]/g, "_").trim();
+      const encodedName = encodeURIComponent(safeFileName);
+
+      const multipartUpload = env.RELEASES_BUCKET.resumeMultipartUpload(key, uploadId);
+      await multipartUpload.complete(parts);
+
+      const sizeInMb = typeof fileSize === "number"
+        ? (fileSize / (1024 * 1024)).toFixed(1) + " MB"
+        : (fileSize || "-- MB");
+      const downloadUrl = `/download/${prefix}/${encodedName}`;
+
+      const metaRecord = {
+        version: version || `v${Date.now()}`,
+        fileName: safeFileName,
+        fileSize: sizeInMb,
+        updatedAt: new Date().toISOString(),
+        downloadUrl: downloadUrl,
+        notes: notes || ""
+      };
+
+      await env.RELEASES_BUCKET.put(`${prefix}/latest-meta.json`, JSON.stringify(metaRecord, null, 2), {
+        httpMetadata: {
+          contentType: "application/json"
+        }
+      });
+
+      return new Response(JSON.stringify({
+        success: true,
+        message: "分片合并完成，分发包已成功存储至 Cloudflare R2 并更新全局发布记录！",
+        ...metaRecord
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json; charset=utf-8" }
+      });
+    }
+
+    // ----------------------------------------------------------------------
+    // D. Standard Single-Request Multipart Form Data Upload (<90MB)
+    // ----------------------------------------------------------------------
     const formData = await request.formData();
     const file = formData.get("file");
     const version = formData.get("version") || `v${Date.now()}`;

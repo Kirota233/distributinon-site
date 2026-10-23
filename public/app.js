@@ -508,7 +508,7 @@ function setupUploadHandlers() {
     fileInfo.textContent = `已选文件: ${f.name} (${(f.size / 1024 / 1024).toFixed(2)} MB)`;
   }
 
-  form.addEventListener("submit", (e) => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const file = fileInput.files[0];
     const version = document.getElementById("input-upload-version").value.trim();
@@ -532,6 +532,113 @@ function setupUploadHandlers() {
 
     const targetProject = state.uploadTargetProject || "xiaoma-renamer";
     const apiProjectKey = targetProject === "xiaoma-editor" ? "xiaoma-editor" : "xiaoma";
+
+    // 大文件 (>50MB) 自动采用 R2 分片上传，突破 Cloudflare 100MB 单次请求限制
+    const CHUNK_SIZE = 50 * 1024 * 1024;
+    if (file.size > CHUNK_SIZE) {
+      try {
+        statusMsg.textContent = "正在初始化分片传输...";
+        const initRes = await fetch("/api/upload?action=mpu-create", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-admin-token": token
+          },
+          body: JSON.stringify({
+            project: apiProjectKey,
+            fileName: file.name,
+            contentType: file.type || "application/octet-stream",
+            version: version
+          })
+        });
+        if (!initRes.ok) {
+          throw new Error(await initRes.text());
+        }
+        const { uploadId, key } = await initRes.json();
+
+        const totalParts = Math.ceil(file.size / CHUNK_SIZE);
+        const parts = [];
+
+        for (let partNumber = 1; partNumber <= totalParts; partNumber++) {
+          const start = (partNumber - 1) * CHUNK_SIZE;
+          const end = Math.min(start + CHUNK_SIZE, file.size);
+          const chunk = file.slice(start, end);
+
+          const partInfo = await new Promise((resolve, reject) => {
+            const partXhr = new XMLHttpRequest();
+            partXhr.open("POST", `/api/upload?action=mpu-part&uploadId=${encodeURIComponent(uploadId)}&key=${encodeURIComponent(key)}&partNumber=${partNumber}`);
+            partXhr.setRequestHeader("x-admin-token", token);
+            partXhr.setRequestHeader("Content-Type", "application/octet-stream");
+
+            partXhr.upload.onprogress = (ev) => {
+              if (ev.lengthComputable) {
+                const totalLoaded = start + ev.loaded;
+                const pct = Math.min(99, Math.round((totalLoaded / file.size) * 100));
+                progressFill.style.width = pct + "%";
+                percentText.textContent = pct + "%";
+                statusMsg.textContent = `分片上传中 (${partNumber}/${totalParts}) - ${(totalLoaded / 1024 / 1024).toFixed(1)}MB / ${(file.size / 1024 / 1024).toFixed(1)}MB`;
+              }
+            };
+
+            partXhr.onload = () => {
+              if (partXhr.status >= 200 && partXhr.status < 300) {
+                resolve(JSON.parse(partXhr.responseText));
+              } else {
+                reject(new Error(partXhr.responseText || `分片 ${partNumber} 上传失败`));
+              }
+            };
+            partXhr.onerror = () => reject(new Error(`分片 ${partNumber} 网络中断`));
+            partXhr.send(chunk);
+          });
+
+          parts.push(partInfo);
+        }
+
+        statusMsg.textContent = "正在合并文件并更新记录...";
+        const compRes = await fetch("/api/upload?action=mpu-complete", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-admin-token": token
+          },
+          body: JSON.stringify({
+            uploadId,
+            key,
+            parts,
+            project: apiProjectKey,
+            version,
+            fileName: file.name,
+            fileSize: file.size,
+            notes
+          })
+        });
+
+        if (!compRes.ok) {
+          throw new Error(await compRes.text());
+        }
+        const resp = await compRes.json();
+
+        progressFill.style.width = "100%";
+        percentText.textContent = "100%";
+        statusMsg.textContent = "✓ 上传成功并已更新分发记录！";
+
+        state.projects[targetProject].version = version;
+        state.projects[targetProject].fileName = file.name;
+        state.projects[targetProject].updatedAt = new Date().toISOString();
+        state.projects[targetProject].downloadUrl = resp.downloadUrl || `/download/${apiProjectKey}/${encodeURIComponent(file.name)}`;
+        updateCardDOM(targetProject);
+
+        setTimeout(() => {
+          alert(`上传成功！版本 ${version} (${file.name}) 已发布。`);
+          closeAllModals();
+        }, 600);
+      } catch (err) {
+        alert("分片上传失败: " + err.message);
+        submitBtn.disabled = false;
+        submitBtn.textContent = "↑ 重新尝试上传";
+      }
+      return;
+    }
 
     const formData = new FormData();
     formData.append("file", file);
