@@ -24,6 +24,16 @@ const DEFAULT_XIAOMA_META = {
   notes: "初始构建版本：支持多规则序号重排、正则命名与实时改名预览。"
 };
 
+// Fallback metadata for Xiao Ma's Editing Studio (小马剪辑台)
+const DEFAULT_XIAOMA_EDITOR_META = {
+  version: "v1.1.2",
+  updatedAt: "2026-10-23T08:49:00Z",
+  fileName: "小马剪辑台-1.1.2-Windows-x64-安装包.exe",
+  fileSize: "115.9 MB",
+  downloadUrl: "/download/xiaoma-editor/%E5%B0%8F%E9%A9%AC%E5%89%AA%E8%BE%91%E5%8F%B0-1.1.2-Windows-x64-%E5%AE%89%E8%A3%85%E5%8C%85.exe",
+  notes: "小马剪辑台 v1.1.2 Windows x64 安装包"
+};
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -36,7 +46,12 @@ export default {
 
     // 2. API: Get latest Xiao Ma Renamer release info
     if (path === "/api/xiaoma/latest") {
-      return handleXiaoMaLatest(env);
+      return handleXiaoMaLatest(env, "xiaoma", DEFAULT_XIAOMA_META);
+    }
+
+    // 2.1 API: Get latest Xiao Ma Editor release info
+    if (path === "/api/xiaoma-editor/latest") {
+      return handleXiaoMaLatest(env, "xiaoma-editor", DEFAULT_XIAOMA_EDITOR_META);
     }
 
     // 3. API: Developer upload to Cloudflare R2
@@ -47,7 +62,13 @@ export default {
     // 4. Route: Download Xiao Ma tool binary from R2
     if (path.startsWith("/download/xiaoma/")) {
       const fileName = decodeURIComponent(path.replace("/download/xiaoma/", ""));
-      return handleXiaoMaDownload(fileName, env);
+      return handleXiaoMaDownload(fileName, env, "xiaoma");
+    }
+
+    // 4.1 Route: Download Xiao Ma Editor binary from R2
+    if (path.startsWith("/download/xiaoma-editor/")) {
+      const fileName = decodeURIComponent(path.replace("/download/xiaoma-editor/", ""));
+      return handleXiaoMaDownload(fileName, env, "xiaoma-editor");
     }
 
     // 5. Route: Stream media (images/videos) from R2
@@ -167,18 +188,18 @@ async function handleGitHubRelease(request, url, env, ctx) {
 /* ==========================================================================
    HANDLER: GET XIAO MA TOOL LATEST METADATA FROM R2
    ========================================================================== */
-async function handleXiaoMaLatest(env) {
+async function handleXiaoMaLatest(env, prefix = "xiaoma", fallbackMeta = DEFAULT_XIAOMA_META) {
   // If R2 is not bound, return default metadata
   if (!env.RELEASES_BUCKET) {
-    return new Response(JSON.stringify(DEFAULT_XIAOMA_META), {
+    return new Response(JSON.stringify(fallbackMeta), {
       headers: { "Content-Type": "application/json; charset=utf-8", "Access-Control-Allow-Origin": "*" }
     });
   }
 
   try {
-    const metaObj = await env.RELEASES_BUCKET.get("xiaoma/latest-meta.json");
+    const metaObj = await env.RELEASES_BUCKET.get(`${prefix}/latest-meta.json`);
     if (!metaObj) {
-      return new Response(JSON.stringify(DEFAULT_XIAOMA_META), {
+      return new Response(JSON.stringify(fallbackMeta), {
         headers: { "Content-Type": "application/json; charset=utf-8", "Access-Control-Allow-Origin": "*" }
       });
     }
@@ -194,7 +215,7 @@ async function handleXiaoMaLatest(env) {
       }
     });
   } catch (err) {
-    return new Response(JSON.stringify(DEFAULT_XIAOMA_META), {
+    return new Response(JSON.stringify(fallbackMeta), {
       headers: { "Content-Type": "application/json; charset=utf-8", "Access-Control-Allow-Origin": "*" }
     });
   }
@@ -236,6 +257,8 @@ async function handleDeveloperUpload(request, env) {
     const file = formData.get("file");
     const version = formData.get("version") || `v${Date.now()}`;
     const notes = formData.get("notes") || "";
+    const rawProject = (formData.get("project") || "xiaoma").toString().trim();
+    const prefix = rawProject === "xiaoma-editor" ? "xiaoma-editor" : "xiaoma";
 
     if (!file || typeof file === "string") {
       return new Response(JSON.stringify({ error: "缺少有效的分发包文件。" }), {
@@ -244,14 +267,16 @@ async function handleDeveloperUpload(request, env) {
       });
     }
 
-    const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const r2Key = `xiaoma/releases/${safeFileName}`;
+    const safeFileName = file.name.replace(/[^\w.\-\u4e00-\u9fa5()（）\s]/g, "_").trim() || `release-${Date.now()}.exe`;
+    const r2Key = `${prefix}/releases/${safeFileName}`;
+    const asciiFallback = safeFileName.replace(/[^\x20-\x7E]/g, "_");
+    const encodedName = encodeURIComponent(safeFileName);
 
     // 4. Stream File into Cloudflare R2
     await env.RELEASES_BUCKET.put(r2Key, file.stream(), {
       httpMetadata: {
         contentType: file.type || "application/octet-stream",
-        contentDisposition: `attachment; filename="${safeFileName}"`
+        contentDisposition: `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodedName}`
       },
       customMetadata: {
         version: version,
@@ -260,7 +285,7 @@ async function handleDeveloperUpload(request, env) {
     });
 
     const sizeInMb = (file.size / (1024 * 1024)).toFixed(1) + " MB";
-    const downloadUrl = `/download/xiaoma/${encodeURIComponent(safeFileName)}`;
+    const downloadUrl = `/download/${prefix}/${encodedName}`;
 
     // 5. Update latest-meta.json in R2
     const metaRecord = {
@@ -272,7 +297,7 @@ async function handleDeveloperUpload(request, env) {
       notes: notes
     };
 
-    await env.RELEASES_BUCKET.put("xiaoma/latest-meta.json", JSON.stringify(metaRecord, null, 2), {
+    await env.RELEASES_BUCKET.put(`${prefix}/latest-meta.json`, JSON.stringify(metaRecord, null, 2), {
       httpMetadata: {
         contentType: "application/json"
       }
@@ -300,7 +325,7 @@ async function handleDeveloperUpload(request, env) {
 /* ==========================================================================
    HANDLER: STREAM DOWNLOAD FROM CLOUDFLARE R2
    ========================================================================== */
-async function handleXiaoMaDownload(fileName, env) {
+async function handleXiaoMaDownload(fileName, env, prefix = "xiaoma") {
   if (!env.RELEASES_BUCKET) {
     return new Response(`Cloudflare R2 存储桶未绑定，暂时无法提供文件流下载。请确保在 wrangler.toml 中配置并绑定了 RELEASES_BUCKET。`, {
       status: 503,
@@ -308,17 +333,17 @@ async function handleXiaoMaDownload(fileName, env) {
     });
   }
 
-  const r2Key = `xiaoma/releases/${fileName}`;
+  const r2Key = `${prefix}/releases/${fileName}`;
   const object = await env.RELEASES_BUCKET.get(r2Key);
 
   if (!object) {
     // If exact name not found, try reading latest-meta.json to redirect
     try {
-      const metaObj = await env.RELEASES_BUCKET.get("xiaoma/latest-meta.json");
+      const metaObj = await env.RELEASES_BUCKET.get(`${prefix}/latest-meta.json`);
       if (metaObj) {
         const meta = JSON.parse(await metaObj.text());
         if (meta.fileName && meta.fileName !== fileName) {
-          return Response.redirect(`/download/xiaoma/${encodeURIComponent(meta.fileName)}`, 302);
+          return Response.redirect(`/download/${prefix}/${encodeURIComponent(meta.fileName)}`, 302);
         }
       }
     } catch (e) {}
@@ -329,10 +354,12 @@ async function handleXiaoMaDownload(fileName, env) {
     });
   }
 
+  const asciiFallback = fileName.replace(/[^\x20-\x7E]/g, "_");
+  const encodedName = encodeURIComponent(fileName);
   const headers = new Headers();
   object.writeHttpMetadata(headers);
   headers.set("etag", object.httpEtag);
-  headers.set("Content-Disposition", `attachment; filename="${fileName}"`);
+  headers.set("Content-Disposition", `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodedName}`);
   headers.set("Cache-Control", "public, max-age=31536000, immutable");
 
   return new Response(object.body, {

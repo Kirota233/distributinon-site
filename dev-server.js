@@ -25,6 +25,15 @@ let localXiaoMaMeta = {
   notes: "本地模拟默认包"
 };
 
+let localXiaoMaEditorMeta = {
+  version: "v1.1.2",
+  updatedAt: "2026-10-23T08:49:00Z",
+  fileName: "小马剪辑台-1.1.2-Windows-x64-安装包.exe",
+  fileSize: "115.9 MB",
+  downloadUrl: "/download/xiaoma-editor/%E5%B0%8F%E9%A9%AC%E5%89%AA%E8%BE%91%E5%8F%B0-1.1.2-Windows-x64-%E5%AE%89%E8%A3%85%E5%8C%85.exe",
+  notes: "小马剪辑台 v1.1.2 Windows x64 安装包"
+};
+
 const server = http.createServer((req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
   const pathname = parsedUrl.pathname;
@@ -71,6 +80,13 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // 2.1 API: Xiao Ma Editor latest
+  if (pathname === "/api/xiaoma-editor/latest") {
+    res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+    res.end(JSON.stringify(localXiaoMaEditorMeta));
+    return;
+  }
+
   // 3. API: Developer upload (simulated local R2 storage)
   if (pathname === "/api/upload" && req.method === "POST") {
     const token = req.headers["x-admin-token"] || "";
@@ -92,51 +108,64 @@ const server = http.createServer((req, res) => {
     req.on("end", () => {
       const buffer = Buffer.concat(chunks);
       // Simple parse to extract filename and file body
-      const filenameMatch = buffer.toString("binary").match(/filename="([^"]+)"/);
+      const filenameMatch = buffer.toString("utf8").match(/filename="([^"]+)"/);
       const filename = filenameMatch ? filenameMatch[1] : `release-${Date.now()}.zip`;
       
-      const versionMatch = buffer.toString("utf8").match(/name="version"\r\n\r\n([^\r\n]+)/);
+      const textBody = buffer.toString("utf8");
+      const versionMatch = textBody.match(/name="version"\s+([^\s]+)/);
       const version = versionMatch ? versionMatch[1].trim() : "v1.0.0";
+
+      const projectMatch = textBody.match(/name="project"\s+([^\s]+)/);
+      const project = projectMatch && projectMatch[1].trim() === "xiaoma-editor" ? "xiaoma-editor" : "xiaoma";
 
       // Save file to local simulated R2
       const destPath = path.join(UPLOAD_DIR, filename);
       fs.writeFileSync(destPath, "SIMULATED_BINARY_CONTENT_" + filename);
 
       const sizeMb = (buffer.length / (1024 * 1024)).toFixed(1) + " MB";
-      localXiaoMaMeta = {
+      const meta = {
         version: version,
         fileName: filename,
         fileSize: sizeMb === "0.0 MB" ? "1.5 MB" : sizeMb,
         updatedAt: new Date().toISOString(),
-        downloadUrl: `/download/xiaoma/${encodeURIComponent(filename)}`
+        downloadUrl: `/download/${project}/${encodeURIComponent(filename)}`
       };
+
+      if (project === "xiaoma-editor") {
+        localXiaoMaEditorMeta = meta;
+      } else {
+        localXiaoMaMeta = meta;
+      }
 
       res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
       res.end(JSON.stringify({
         success: true,
         message: "【本地测试】文件已成功保存至本地模拟 R2 目录！",
-        ...localXiaoMaMeta
+        ...meta
       }));
     });
     return;
   }
 
   // 4. Download simulated binary
-  if (pathname.startsWith("/download/xiaoma/")) {
-    const filename = decodeURIComponent(pathname.replace("/download/xiaoma/", ""));
+  if (pathname.startsWith("/download/xiaoma/") || pathname.startsWith("/download/xiaoma-editor/")) {
+    const filename = decodeURIComponent(pathname.replace(/^\/download\/(xiaoma|xiaoma-editor)\//, ""));
     const filePath = path.join(UPLOAD_DIR, filename);
+    const asciiFallback = filename.replace(/[^\x20-\x7E]/g, "_");
+    const encodedName = encodeURIComponent(filename);
+    const disposition = `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodedName}`;
     if (fs.existsSync(filePath)) {
       res.writeHead(200, {
         "Content-Type": "application/octet-stream",
-        "Content-Disposition": `attachment; filename="${filename}"`
+        "Content-Disposition": disposition
       });
       fs.createReadStream(filePath).pipe(res);
     } else {
       res.writeHead(200, {
         "Content-Type": "application/octet-stream",
-        "Content-Disposition": `attachment; filename="${filename}"`
+        "Content-Disposition": disposition
       });
-      res.end("XiaoMa Renamer Simulated Binary Content. Ready for Cloudflare R2 distribution.");
+      res.end("XiaoMa Tool Simulated Binary Content. Ready for Cloudflare R2 distribution.");
     }
     return;
   }

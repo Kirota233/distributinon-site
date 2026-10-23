@@ -33,10 +33,12 @@ export async function onRequestGet(context) {
     });
   }
 
+  const asciiFallback = fileName.replace(/[^\x20-\x7E]/g, "_");
+  const encodedName = encodeURIComponent(fileName);
   const headers = new Headers();
   object.writeHttpMetadata(headers);
   headers.set("etag", object.httpEtag);
-  headers.set("Content-Disposition", `attachment; filename="${fileName}"`);
+  headers.set("Content-Disposition", `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodedName}`);
   headers.set("Cache-Control", "public, max-age=31536000, immutable");
 
   return new Response(object.body, { headers });

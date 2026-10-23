@@ -34,6 +34,8 @@ export async function onRequestPost(context) {
     const file = formData.get("file");
     const version = formData.get("version") || `v${Date.now()}`;
     const notes = formData.get("notes") || "";
+    const rawProject = (formData.get("project") || "xiaoma").toString().trim();
+    const prefix = rawProject === "xiaoma-editor" ? "xiaoma-editor" : "xiaoma";
 
     if (!file || typeof file === "string") {
       return new Response(JSON.stringify({ error: "缺少有效的安装包文件。" }), {
@@ -42,14 +44,16 @@ export async function onRequestPost(context) {
       });
     }
 
-    const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const r2Key = `xiaoma/releases/${safeFileName}`;
+    const safeFileName = file.name.replace(/[^\w.\-\u4e00-\u9fa5()（）\s]/g, "_").trim() || `release-${Date.now()}.exe`;
+    const r2Key = `${prefix}/releases/${safeFileName}`;
+    const asciiFallback = safeFileName.replace(/[^\x20-\x7E]/g, "_");
+    const encodedName = encodeURIComponent(safeFileName);
 
     // 4. 流式存入 Cloudflare R2
     await env.RELEASES_BUCKET.put(r2Key, file.stream(), {
       httpMetadata: {
         contentType: file.type || "application/octet-stream",
-        contentDisposition: `attachment; filename="${safeFileName}"`
+        contentDisposition: `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodedName}`
       },
       customMetadata: {
         version: version,
@@ -58,7 +62,7 @@ export async function onRequestPost(context) {
     });
 
     const sizeInMb = (file.size / (1024 * 1024)).toFixed(1) + " MB";
-    const downloadUrl = `/download/xiaoma/${encodeURIComponent(safeFileName)}`;
+    const downloadUrl = `/download/${prefix}/${encodedName}`;
 
     // 5. 更新 R2 中的最新发布元数据
     const metaRecord = {
@@ -70,7 +74,7 @@ export async function onRequestPost(context) {
       notes: notes
     };
 
-    await env.RELEASES_BUCKET.put("xiaoma/latest-meta.json", JSON.stringify(metaRecord, null, 2), {
+    await env.RELEASES_BUCKET.put(`${prefix}/latest-meta.json`, JSON.stringify(metaRecord, null, 2), {
       httpMetadata: { contentType: "application/json" }
     });
 

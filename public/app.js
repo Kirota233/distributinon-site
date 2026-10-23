@@ -29,6 +29,14 @@ const DEFAULT_METADATA = {
     fileSize: "6.8 MB",
     downloadUrl: "/download/xiaoma/XiaoMa-Batch-Renamer-v1.2.0.zip",
     title: "重命名工具"
+  },
+  "xiaoma-editor": {
+    version: "v1.1.2",
+    updatedAt: "2026-10-23T08:49:00Z",
+    fileName: "小马剪辑台-1.1.2-Windows-x64-安装包.exe",
+    fileSize: "115.9 MB",
+    downloadUrl: "/download/xiaoma-editor/%E5%B0%8F%E9%A9%AC%E5%89%AA%E8%BE%91%E5%8F%B0-1.1.2-Windows-x64-%E5%AE%89%E8%A3%85%E5%8C%85.exe",
+    title: "小马剪辑台"
   }
 };
 
@@ -135,6 +143,19 @@ const GUIDE_DATA = {
         placeholder: "【教程整理中，暂留空】"
       }
     ]
+  },
+  "xiaoma-editor": {
+    title: "小马剪辑台 使用说明",
+    category: "05 // XIAOMA-EDITOR",
+    videoHint: "视频演示正在制作中，敬请期待...",
+    steps: [
+      {
+        num: "01",
+        title: "使用教程整理中",
+        desc: "该工具的使用教程正在整理与录制中，敬请期待...",
+        placeholder: "【教程整理中，暂留空】"
+      }
+    ]
   }
 };
 
@@ -143,7 +164,8 @@ const state = {
   activeMirrors: {
     "jianying-ai-pro": "ghfast",
     "jianying-period-keeper": "ghfast"
-  }
+  },
+  uploadTargetProject: "xiaoma-renamer"
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -177,6 +199,7 @@ function renderProjectCards() {
   updateCardDOM("jianying-ai-pro");
   updateCardDOM("jianying-period-keeper");
   updateCardDOM("xiaoma-renamer");
+  updateCardDOM("xiaoma-editor");
 }
 
 function updateCardDOM(projectId) {
@@ -191,9 +214,9 @@ function updateCardDOM(projectId) {
   if (timeEl) timeEl.textContent = formatTime(data.updatedAt);
 
   if (btnEl) {
-    if (projectId === "xiaoma-renamer") {
+    if (projectId === "xiaoma-renamer" || projectId === "xiaoma-editor") {
       btnEl.href = data.downloadUrl;
-      btnEl.setAttribute("download", data.fileName || "XiaoMa-Renamer.zip");
+      btnEl.setAttribute("download", data.fileName || "release.exe");
     } else {
       const activeMirror = state.activeMirrors[projectId] || "ghfast";
       btnEl.href = getAcceleratedUrl(data.downloadUrl, activeMirror);
@@ -204,7 +227,8 @@ function updateCardDOM(projectId) {
 async function fetchLatestReleases() {
   fetchGitHubRelease("JianYing-AI-Pro", "jianying-ai-pro");
   fetchGitHubRelease("JianYing-Period-Keeper", "jianying-period-keeper");
-  fetchXiaoMaLatest();
+  fetchXiaoMaLatest("/api/xiaoma/latest", "xiaoma-renamer");
+  fetchXiaoMaLatest("/api/xiaoma-editor/latest", "xiaoma-editor");
 }
 
 async function fetchGitHubRelease(repoName, projectId) {
@@ -233,17 +257,17 @@ async function fetchGitHubRelease(repoName, projectId) {
   }
 }
 
-async function fetchXiaoMaLatest() {
+async function fetchXiaoMaLatest(apiUrl = "/api/xiaoma/latest", projectId = "xiaoma-renamer") {
   try {
-    const res = await fetch("/api/xiaoma/latest").catch(() => null);
+    const res = await fetch(apiUrl).catch(() => null);
     if (res && res.ok) {
       const data = await res.json();
-      if (data && data.version) {
-        state.projects["xiaoma-renamer"].version = data.version;
-        state.projects["xiaoma-renamer"].updatedAt = data.updatedAt;
-        state.projects["xiaoma-renamer"].downloadUrl = data.downloadUrl;
-        state.projects["xiaoma-renamer"].fileName = data.fileName;
-        updateCardDOM("xiaoma-renamer");
+      if (data && data.version && state.projects[projectId]) {
+        state.projects[projectId].version = data.version;
+        state.projects[projectId].updatedAt = data.updatedAt;
+        state.projects[projectId].downloadUrl = data.downloadUrl;
+        state.projects[projectId].fileName = data.fileName;
+        updateCardDOM(projectId);
       }
     }
   } catch (err) {}
@@ -269,11 +293,13 @@ function setupEventListeners() {
     });
   });
 
-  // 开发者上传按钮
-  const uploadBtn = document.getElementById("btn-trigger-upload");
-  if (uploadBtn) {
-    uploadBtn.addEventListener("click", openUploadModal);
-  }
+  // 开发者上传按钮 (支持多个工具卡片)
+  document.querySelectorAll("[data-upload-project]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const projectId = btn.getAttribute("data-upload-project") || "xiaoma-renamer";
+      openUploadModal(projectId);
+    });
+  });
 
   // 关闭弹窗
   document.querySelectorAll(".modal-overlay").forEach(overlay => {
@@ -408,10 +434,21 @@ window.copyPromptText = function(btn) {
   });
 };
 
-function openUploadModal() {
+function openUploadModal(projectId = "xiaoma-renamer") {
+  state.uploadTargetProject = projectId;
   const modal = document.getElementById("upload-modal");
   const form = document.getElementById("upload-release-form");
   if (form) form.reset();
+
+  const badgeEl = document.getElementById("upload-modal-badge");
+  const titleEl = document.getElementById("upload-modal-title");
+  if (projectId === "xiaoma-editor") {
+    if (badgeEl) badgeEl.textContent = "05 // 小马剪辑台 · 开发者分发中心";
+    if (titleEl) titleEl.textContent = "上传新版本程序包（小马剪辑台）";
+  } else {
+    if (badgeEl) badgeEl.textContent = "03 // 重命名工具 · 开发者分发中心";
+    if (titleEl) titleEl.textContent = "上传新版本程序包（重命名工具）";
+  }
 
   const fileInfo = document.getElementById("dropzone-file-info");
   const progressBox = document.getElementById("upload-progress-box");
@@ -493,10 +530,14 @@ function setupUploadHandlers() {
     submitBtn.disabled = true;
     submitBtn.textContent = "正在上传中...";
 
+    const targetProject = state.uploadTargetProject || "xiaoma-renamer";
+    const apiProjectKey = targetProject === "xiaoma-editor" ? "xiaoma-editor" : "xiaoma";
+
     const formData = new FormData();
     formData.append("file", file);
     formData.append("version", version);
     formData.append("notes", notes);
+    formData.append("project", apiProjectKey);
 
     const xhr = new XMLHttpRequest();
     xhr.open("POST", "/api/upload");
@@ -520,11 +561,11 @@ function setupUploadHandlers() {
         percentText.textContent = "100%";
         statusMsg.textContent = "✓ 上传成功并已更新分发记录！";
 
-        state.projects["xiaoma-renamer"].version = version;
-        state.projects["xiaoma-renamer"].fileName = file.name;
-        state.projects["xiaoma-renamer"].updatedAt = new Date().toISOString();
-        state.projects["xiaoma-renamer"].downloadUrl = resp.downloadUrl || `/download/xiaoma/${encodeURIComponent(file.name)}`;
-        updateCardDOM("xiaoma-renamer");
+        state.projects[targetProject].version = version;
+        state.projects[targetProject].fileName = file.name;
+        state.projects[targetProject].updatedAt = new Date().toISOString();
+        state.projects[targetProject].downloadUrl = resp.downloadUrl || `/download/${apiProjectKey}/${encodeURIComponent(file.name)}`;
+        updateCardDOM(targetProject);
 
         setTimeout(() => {
           alert(`上传成功！版本 ${version} (${file.name}) 已发布。`);
