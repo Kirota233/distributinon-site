@@ -52,7 +52,13 @@ const server = http.createServer((req, res) => {
   // 1. API: GitHub Release Proxy
   if (pathname === "/api/releases/github") {
     const repo = parsedUrl.searchParams.get("repo") || "JianYing-AI-Pro";
-    const targetRepo = repo === "JianYing-Period-Keeper" ? "Kirota233/JianYing-Period-Keeper" : "Kirota233/JianYing-AI-Pro";
+    const safeRepos = {
+      "JianYing-AI-Pro": "Kirota233/JianYing-AI-Pro",
+      "JianYing-Period-Keeper": "Kirota233/JianYing-Period-Keeper",
+      "XM-Editing-Studio": "KDHRBm/XM-Editing-Studio",
+      "KDHRBm/XM-Editing-Studio": "KDHRBm/XM-Editing-Studio"
+    };
+    const targetRepo = safeRepos[repo] || (repo.includes("/") ? repo : `Kirota233/${repo}`);
 
     const https = require("https");
     const ghReq = https.request(`https://api.github.com/repos/${targetRepo}/releases/latest`, {

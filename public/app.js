@@ -31,11 +31,12 @@ const DEFAULT_METADATA = {
     title: "重命名工具"
   },
   "xiaoma-editor": {
-    version: "v1.1.2",
-    updatedAt: "2026-10-23T08:49:00Z",
-    fileName: "小马剪辑台-1.1.2-Windows-x64-安装包.exe",
-    fileSize: "115.9 MB",
-    downloadUrl: "/download/xiaoma-editor/%E5%B0%8F%E9%A9%AC%E5%89%AA%E8%BE%91%E5%8F%B0-1.1.2-Windows-x64-%E5%AE%89%E8%A3%85%E5%8C%85.exe",
+    repo: "KDHRBm/XM-Editing-Studio",
+    version: "v1.3.0",
+    updatedAt: "2026-10-26T03:17:15Z",
+    fileName: "XM-Editing-Studio-1.3.0-Windows-x64-Setup.exe",
+    fileSize: "186.1 MB",
+    downloadUrl: "https://github.com/KDHRBm/XM-Editing-Studio/releases/download/v1.3.0/XM-Editing-Studio-1.3.0-Windows-x64-Setup.exe",
     title: "小马剪辑台"
   }
 };
@@ -399,7 +400,8 @@ const state = {
   projects: JSON.parse(JSON.stringify(DEFAULT_METADATA)),
   activeMirrors: {
     "jianying-ai-pro": "ghfast",
-    "jianying-period-keeper": "ghfast"
+    "jianying-period-keeper": "ghfast",
+    "xiaoma-editor": "ghfast"
   },
   uploadTargetProject: "xiaoma-renamer"
 };
@@ -450,9 +452,9 @@ function updateCardDOM(projectId) {
   if (timeEl) timeEl.textContent = formatTime(data.updatedAt);
 
   if (btnEl) {
-    if (projectId === "xiaoma-renamer" || projectId === "xiaoma-editor") {
+    if (projectId === "xiaoma-renamer") {
       btnEl.href = data.downloadUrl;
-      btnEl.setAttribute("download", data.fileName || "release.exe");
+      btnEl.setAttribute("download", data.fileName || "XiaoMa-Renamer.zip");
     } else {
       const activeMirror = state.activeMirrors[projectId] || "ghfast";
       btnEl.href = getAcceleratedUrl(data.downloadUrl, activeMirror);
@@ -463,15 +465,16 @@ function updateCardDOM(projectId) {
 async function fetchLatestReleases() {
   fetchGitHubRelease("JianYing-AI-Pro", "jianying-ai-pro");
   fetchGitHubRelease("JianYing-Period-Keeper", "jianying-period-keeper");
+  fetchGitHubRelease("KDHRBm/XM-Editing-Studio", "xiaoma-editor");
   fetchXiaoMaLatest("/api/xiaoma/latest", "xiaoma-renamer");
-  fetchXiaoMaLatest("/api/xiaoma-editor/latest", "xiaoma-editor");
 }
 
 async function fetchGitHubRelease(repoName, projectId) {
   try {
+    const fullRepo = repoName.includes("/") ? repoName : `Kirota233/${repoName}`;
     let res = await fetch(`/api/releases/github?repo=${encodeURIComponent(repoName)}`).catch(() => null);
     if (!res || !res.ok) {
-      res = await fetch(`https://api.github.com/repos/Kirota233/${repoName}/releases/latest`, {
+      res = await fetch(`https://api.github.com/repos/${fullRepo}/releases/latest`, {
         headers: { Accept: "application/vnd.github.v3+json" }
       }).catch(() => null);
     }
@@ -483,8 +486,14 @@ async function fetchGitHubRelease(repoName, projectId) {
       state.projects[projectId].updatedAt = data.published_at || data.created_at;
 
       if (data.assets && data.assets.length > 0) {
-        state.projects[projectId].downloadUrl = data.assets[0].browser_download_url;
-        state.projects[projectId].fileName = data.assets[0].name;
+        // 优先选择 .exe 安装包，其次选择非源码 .zip，最后兜底第一个附件
+        const preferredAsset =
+          data.assets.find(a => /\.exe$/i.test(a.name)) ||
+          data.assets.find(a => /\.(msi|dmg|pkg)$/i.test(a.name)) ||
+          data.assets.find(a => /\.zip$/i.test(a.name) && !/source/i.test(a.name)) ||
+          data.assets[0];
+        state.projects[projectId].downloadUrl = preferredAsset.browser_download_url;
+        state.projects[projectId].fileName = preferredAsset.name;
       }
       updateCardDOM(projectId);
     }
@@ -511,7 +520,7 @@ async function fetchXiaoMaLatest(apiUrl = "/api/xiaoma/latest", projectId = "xia
 
 function setupEventListeners() {
   // 加速节点下拉切换
-  ["jianying-ai-pro", "jianying-period-keeper"].forEach(id => {
+  ["jianying-ai-pro", "jianying-period-keeper", "xiaoma-editor"].forEach(id => {
     const selector = document.getElementById(`mirror-select-${id}`);
     if (selector) {
       selector.addEventListener("change", (e) => {

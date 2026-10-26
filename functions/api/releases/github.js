@@ -14,10 +14,12 @@ export async function onRequestGet(context) {
 
   const safeRepos = {
     "JianYing-AI-Pro": "Kirota233/JianYing-AI-Pro",
-    "JianYing-Period-Keeper": "Kirota233/JianYing-Period-Keeper"
+    "JianYing-Period-Keeper": "Kirota233/JianYing-Period-Keeper",
+    "XM-Editing-Studio": "KDHRBm/XM-Editing-Studio",
+    "KDHRBm/XM-Editing-Studio": "KDHRBm/XM-Editing-Studio"
   };
 
-  const targetRepo = safeRepos[repo] || `Kirota233/${repo}`;
+  const targetRepo = safeRepos[repo] || (repo.includes("/") ? repo : `Kirota233/${repo}`);
 
   try {
     const headers = {
