@@ -518,6 +518,135 @@ async function fetchXiaoMaLatest(apiUrl = "/api/xiaoma/latest", projectId = "xia
   } catch (err) {}
 }
 
+// ----------------------------------------------------------------------------
+// Windows 版本环境与 WebView2 提示检测
+// ----------------------------------------------------------------------------
+const WEBVIEW2_BOOTSTRAPPER_URL = "https://go.microsoft.com/fwlink/p/?LinkId=2124703";
+const WV2_DISMISSED_KEY = "taiki_wv2_notice_dismissed";
+
+async function isWindows10Environment() {
+  if (typeof navigator === "undefined") return false;
+
+  // 1. 优先使用现代 Client Hints API 获取 Windows 精确内核主版本
+  if (navigator.userAgentData && typeof navigator.userAgentData.getHighEntropyValues === "function") {
+    try {
+      const hints = await navigator.userAgentData.getHighEntropyValues(["platform", "platformVersion"]);
+      if (hints.platform === "Windows") {
+        const major = parseInt((hints.platformVersion || "").split(".")[0], 10);
+        // Chromium 规范：Windows 11 platformVersion >= 13.0.0 (Build 22000+)
+        // Windows 10 platformVersion 为 1-10 范围 (如 10.0.0 或 0.x.x)
+        if (!isNaN(major)) {
+          return major < 13;
+        }
+      }
+    } catch (_) {}
+  }
+
+  // 2. 回退传统 User-Agent 检测
+  const ua = navigator.userAgent || "";
+  const isWindows = /Windows NT/i.test(ua);
+  const isWin10UA = /Windows NT 10\.0/i.test(ua);
+
+  // 传统 UA 中 Win10 与 Win11 均显示 Windows NT 10.0，若未走通 Client Hints 则在 Windows 下偏向防护
+  return isWindows && isWin10UA;
+}
+
+function showWebView2AlertPanel(cardEl, originalDownloadUrl, originalFileName) {
+  if (!cardEl) return;
+
+  // 移除已有提示层避免重复叠加
+  const existingOverlay = cardEl.querySelector(".webview2-panel-overlay");
+  if (existingOverlay) existingOverlay.remove();
+
+  cardEl.classList.add("webview2-alert-active");
+
+  const overlay = document.createElement("div");
+  overlay.className = "webview2-panel-overlay";
+  overlay.innerHTML = `
+    <div class="wv2-alert-top">
+      <span>[SYSTEM COMPATIBILITY]</span>
+      <button type="button" class="wv2-alert-close" title="取消">✕</button>
+    </div>
+    <div class="wv2-alert-body">
+      <div class="wv2-alert-title">需要 WebView2 运行时</div>
+      <div class="wv2-alert-desc">
+        检测到您的系统可能为 <strong>Windows 10</strong>。<br>
+        本程序基于现代 UI 构建，若系统未预装 <strong>Microsoft Edge WebView2</strong> 将无法启动。<br>
+        建议先安装官方微型运行时（约 2MB，即装即用）。
+      </div>
+    </div>
+    <div class="wv2-alert-actions">
+      <a href="${WEBVIEW2_BOOTSTRAPPER_URL}" class="btn-wv2-download" target="_blank" rel="noopener">
+        ↓ 1. 下载官方 WebView2 运行时
+      </a>
+      <button type="button" class="btn-wv2-skip">
+        ✓ 2. 我已安装，继续下载本程序
+      </button>
+    </div>
+  `;
+
+  const closeAlert = () => {
+    overlay.remove();
+    cardEl.classList.remove("webview2-alert-active");
+  };
+
+  overlay.querySelector(".wv2-alert-close").addEventListener("click", closeAlert);
+
+  overlay.querySelector(".btn-wv2-download").addEventListener("click", () => {
+    try { localStorage.setItem(WV2_DISMISSED_KEY, "true"); } catch (_) {}
+    // 用户点击下载 WebView2 之后，延时 1 秒继续触发原程序的下载
+    setTimeout(() => {
+      triggerDirectDownload(originalDownloadUrl, originalFileName);
+      closeAlert();
+    }, 1200);
+  });
+
+  overlay.querySelector(".btn-wv2-skip").addEventListener("click", () => {
+    try { localStorage.setItem(WV2_DISMISSED_KEY, "true"); } catch (_) {}
+    triggerDirectDownload(originalDownloadUrl, originalFileName);
+    closeAlert();
+  });
+
+  cardEl.appendChild(overlay);
+}
+
+function triggerDirectDownload(url, fileName) {
+  const a = document.createElement("a");
+  a.href = url;
+  if (fileName) a.setAttribute("download", fileName);
+  a.target = "_blank";
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+function bindWindows10DownloadGuard() {
+  document.querySelectorAll(".item-card").forEach(card => {
+    const btn = card.querySelector(".btn-primary");
+    if (!btn) return;
+
+    btn.addEventListener("click", async (e) => {
+      // 检查用户是否已经跳过/确认过 WebView2 提示
+      let dismissed = false;
+      try {
+        dismissed = localStorage.getItem(WV2_DISMISSED_KEY) === "true";
+      } catch (_) {}
+
+      if (dismissed) return; // 已确认过直接放行正常下载
+
+      const isWin10 = await isWindows10Environment();
+      if (isWin10) {
+        e.preventDefault();
+        e.stopPropagation();
+        const currentUrl = btn.href;
+        const fileName = btn.getAttribute("download") || "";
+        showWebView2AlertPanel(card, currentUrl, fileName);
+      }
+    });
+  });
+}
+
 function setupEventListeners() {
   // 加速节点下拉切换
   ["jianying-ai-pro", "jianying-period-keeper", "xiaoma-editor"].forEach(id => {
@@ -571,6 +700,7 @@ function setupEventListeners() {
   });
 
   setupUploadHandlers();
+  bindWindows10DownloadGuard();
 }
 
 function openGuideModal(projectId) {

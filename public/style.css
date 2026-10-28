@@ -99,11 +99,124 @@ html, body {
    单个卡片样式 (Item Card)
    -------------------------------------------------------------------------- */
 .item-card {
+  position: relative;
   background: var(--surface);
   border: 1px solid var(--border-dark);
   display: flex;
   flex-direction: column;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Win10 缺少 WebView2 时的全卡片主题红警告层 */
+.item-card.webview2-alert-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 4px 4px 0px var(--border-dark);
+}
+
+.webview2-panel-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  color: #FFFFFF;
+  z-index: 25;
+  padding: 1.5rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  animation: fadeInAlert 0.2s ease;
+}
+
+@keyframes fadeInAlert {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.wv2-alert-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+  padding-bottom: 0.65rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.wv2-alert-close {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  color: #FFFFFF;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 0.15rem 0.45rem;
+  cursor: pointer;
+}
+
+.wv2-alert-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.wv2-alert-body {
+  margin: auto 0;
+  padding: 0.75rem 0;
+}
+
+.wv2-alert-title {
+  font-size: 1.15rem;
+  font-weight: 900;
+  line-height: 1.35;
+  margin-bottom: 0.5rem;
+}
+
+.wv2-alert-desc {
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.wv2-alert-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.btn-wv2-download {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 42px;
+  background: #FFFFFF;
+  color: var(--accent);
+  font-size: 0.86rem;
+  font-weight: 800;
+  text-decoration: none;
+  border: 1px solid #FFFFFF;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.btn-wv2-download:hover {
+  background: #FAF8F5;
+  transform: translateY(-1px);
+}
+
+.btn-wv2-skip {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  height: 36px;
+  font-size: 0.76rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-wv2-skip:hover {
+  background: rgba(17, 17, 17, 0.25);
+  border-color: #FFFFFF;
+  color: #FFFFFF;
 }
 
 .item-card:hover {
