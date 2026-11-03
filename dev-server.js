@@ -56,7 +56,8 @@ const server = http.createServer((req, res) => {
       "JianYing-AI-Pro": "Kirota233/JianYing-AI-Pro",
       "JianYing-Period-Keeper": "Kirota233/JianYing-Period-Keeper",
       "XM-Editing-Studio": "KDHRBm/XM-Editing-Studio",
-      "KDHRBm/XM-Editing-Studio": "KDHRBm/XM-Editing-Studio"
+      "KDHRBm/XM-Editing-Studio": "KDHRBm/XM-Editing-Studio",
+      "Kirota233/XM-Editing-Studio": "Kirota233/XM-Editing-Studio"
     };
     const targetRepo = safeRepos[repo] || (repo.includes("/") ? repo : `Kirota233/${repo}`);
 

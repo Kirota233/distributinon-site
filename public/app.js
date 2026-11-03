@@ -38,6 +38,15 @@ const DEFAULT_METADATA = {
     fileSize: "186.1 MB",
     downloadUrl: "https://github.com/KDHRBm/XM-Editing-Studio/releases/download/v1.3.0/XM-Editing-Studio-1.3.0-Windows-x64-Setup.exe",
     title: "小马剪辑台"
+  },
+  "xiaoma-editor-csharp": {
+    repo: "Kirota233/XM-Editing-Studio",
+    version: "v1.7.5",
+    updatedAt: "2026-11-03T06:14:30Z",
+    fileName: "XM-Editing-Studio-1.7.5-Windows-x64-Setup.exe",
+    fileSize: "1.3 MB",
+    downloadUrl: "https://github.com/Kirota233/XM-Editing-Studio/releases/download/v1.7.5/XM-Editing-Studio-1.7.5-Windows-x64-Setup.exe",
+    title: "小马剪辑台 (C# 重构版)"
   }
 };
 
@@ -396,12 +405,20 @@ I am ready.
   }
 };
 
+// 第 06 项（C# 重构版）共用小马剪辑台完整教程说明
+GUIDE_DATA["xiaoma-editor-csharp"] = {
+  ...GUIDE_DATA["xiaoma-editor"],
+  title: "小马剪辑台 (C# 重构版) · 详细功能说明",
+  category: "06 // XIAOMA EDITOR (C# .NET EDITION)"
+};
+
 const state = {
   projects: JSON.parse(JSON.stringify(DEFAULT_METADATA)),
   activeMirrors: {
     "jianying-ai-pro": "ghfast",
     "jianying-period-keeper": "ghfast",
-    "xiaoma-editor": "ghfast"
+    "xiaoma-editor": "ghfast",
+    "xiaoma-editor-csharp": "ghfast"
   },
   uploadTargetProject: "xiaoma-renamer"
 };
@@ -466,6 +483,7 @@ async function fetchLatestReleases() {
   fetchGitHubRelease("JianYing-AI-Pro", "jianying-ai-pro");
   fetchGitHubRelease("JianYing-Period-Keeper", "jianying-period-keeper");
   fetchGitHubRelease("KDHRBm/XM-Editing-Studio", "xiaoma-editor");
+  fetchGitHubRelease("Kirota233/XM-Editing-Studio", "xiaoma-editor-csharp");
   fetchXiaoMaLatest("/api/xiaoma/latest", "xiaoma-renamer");
 }
 
@@ -649,7 +667,7 @@ function bindWindows10DownloadGuard() {
 
 function setupEventListeners() {
   // 加速节点下拉切换
-  ["jianying-ai-pro", "jianying-period-keeper", "xiaoma-editor"].forEach(id => {
+  ["jianying-ai-pro", "jianying-period-keeper", "xiaoma-editor", "xiaoma-editor-csharp"].forEach(id => {
     const selector = document.getElementById(`mirror-select-${id}`);
     if (selector) {
       selector.addEventListener("change", (e) => {
