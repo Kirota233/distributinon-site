@@ -22,14 +22,6 @@ const DEFAULT_METADATA = {
     downloadUrl: "https://github.com/Kirota233/JianYing-Period-Keeper/releases/download/v1.0.5/JianyingPeriodKeeper.exe",
     title: "JianYing-Period-Keeper"
   },
-  "xiaoma-renamer": {
-    version: "v1.2.0",
-    updatedAt: "2026-10-14T03:30:00Z",
-    fileName: "XiaoMa-Batch-Renamer-v1.2.0.zip",
-    fileSize: "6.8 MB",
-    downloadUrl: "/download/xiaoma/XiaoMa-Batch-Renamer-v1.2.0.zip",
-    title: "重命名工具"
-  },
   "xiaoma-editor": {
     repo: "KDHRBm/XM-Editing-Studio",
     version: "v1.3.0",
@@ -37,16 +29,16 @@ const DEFAULT_METADATA = {
     fileName: "XM-Editing-Studio-1.3.0-Windows-x64-Setup.exe",
     fileSize: "186.1 MB",
     downloadUrl: "https://github.com/KDHRBm/XM-Editing-Studio/releases/download/v1.3.0/XM-Editing-Studio-1.3.0-Windows-x64-Setup.exe",
-    title: "小马剪辑台"
+    title: "XM剪辑台"
   },
   "xiaoma-editor-csharp": {
-    repo: "Kirota233/XM-Editing-Studio",
-    version: "v1.7.5",
-    updatedAt: "2026-11-03T06:14:30Z",
-    fileName: "XM-Editing-Studio-1.7.5-Windows-x64-Setup.exe",
+    repo: "Kirota233/LazyCut",
+    version: "v1.7.7",
+    updatedAt: "2026-11-04T02:39:29Z",
+    fileName: "XM-Editing-Studio-1.7.7-Windows-x64-Setup.exe",
     fileSize: "1.3 MB",
-    downloadUrl: "https://github.com/Kirota233/XM-Editing-Studio/releases/download/v1.7.5/XM-Editing-Studio-1.7.5-Windows-x64-Setup.exe",
-    title: "小马剪辑台 (C# 重构版)"
+    downloadUrl: "https://github.com/Kirota233/LazyCut/releases/download/v1.7.7/XM-Editing-Studio-1.7.7-Windows-x64-Setup.exe",
+    title: "LazyCut-基于XM剪辑台的C#重构版"
   }
 };
 
@@ -405,12 +397,16 @@ I am ready.
   }
 };
 
-// 第 06 项（C# 重构版）共用小马剪辑台完整教程说明
+// 第 01 项（LazyCut C# 重构版）共用 XM 剪辑台完整教程说明
 GUIDE_DATA["xiaoma-editor-csharp"] = {
   ...GUIDE_DATA["xiaoma-editor"],
-  title: "小马剪辑台 (C# 重构版) · 详细功能说明",
-  category: "06 // XIAOMA EDITOR (C# .NET EDITION)"
+  title: "LazyCut-基于XM剪辑台的C#重构版 · 详细功能说明",
+  category: "01 // LAZYCUT (C# .NET EDITION)"
 };
+GUIDE_DATA["xiaoma-editor"].title = "XM剪辑台 · 详细功能说明";
+GUIDE_DATA["xiaoma-editor"].category = "02 // XM EDITING STUDIO";
+GUIDE_DATA["jianying-ai-pro"].category = "04 // JIANYING-AI-PRO";
+GUIDE_DATA["jianying-period-keeper"].category = "05 // JIANYING-PERIOD-KEEPER";
 
 const state = {
   projects: JSON.parse(JSON.stringify(DEFAULT_METADATA)),
@@ -480,11 +476,10 @@ function updateCardDOM(projectId) {
 }
 
 async function fetchLatestReleases() {
+  fetchGitHubRelease("Kirota233/LazyCut", "xiaoma-editor-csharp");
+  fetchGitHubRelease("KDHRBm/XM-Editing-Studio", "xiaoma-editor");
   fetchGitHubRelease("JianYing-AI-Pro", "jianying-ai-pro");
   fetchGitHubRelease("JianYing-Period-Keeper", "jianying-period-keeper");
-  fetchGitHubRelease("KDHRBm/XM-Editing-Studio", "xiaoma-editor");
-  fetchGitHubRelease("Kirota233/XM-Editing-Studio", "xiaoma-editor-csharp");
-  fetchXiaoMaLatest("/api/xiaoma/latest", "xiaoma-renamer");
 }
 
 async function fetchGitHubRelease(repoName, projectId) {
