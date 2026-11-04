@@ -397,11 +397,42 @@ I am ready.
   }
 };
 
-// 第 01 项（LazyCut C# 重构版）共用 XM 剪辑台完整教程说明
+// 第 01 项（LazyCut C# 重构版）：替换全套名称为 LazyCut，并在开篇加入 C# 原生重构版独家特性说明
+const lazyCutCoreFeaturesStep = {
+  num: "00",
+  title: "零、LazyCut (C# 原生重构版) 独家核心特性",
+  desc: `LazyCut 是由塔奇基于 C# (.NET Framework 4.x) + 系统 WebView2 全面重构的超轻量原生剪辑工作台，旨在真正为大家解放双手：
+
+1. 1.3 MB 纯 C# 原生架构 · 毫秒级冷启动
+彻底摒弃臃肿的 Electron / Chromium 内核与 Python 运行时，采用 131 KB 原生 C# 桌面宿主搭配系统内置 Edge WebView2，安装包体积从 186 MB 缩减至 1.3 MB，启动速度与流畅度质的飞跃，内存占用极低。
+
+2. 全新「跑量剪辑流」工作区与多语种台词提纯
+• 5 部剧目独立归档与 20 集分集卡片分页切换，支持单集或批量粘贴剧本、候选曲目试听与本剧采用音乐频次统计。
+• 支持识别 [EN] 英文、[ES] 西语（含无 [ES] 标记的西语原文智能分离）及中文角色台词。
+
+3. 内置 DeepSeek / 豆包官方网页版（免 API Key 即登即用）
+除 Gemini / OpenAI / Anthropic 接口外，原生内嵌 DeepSeek 与豆包网页版，支持宿主层 CDP 真实回车发送、自动恢复输入框光标、长剧本自动分段续发与配乐推荐解析。
+
+4. 剪映自动化中心与桌面悬浮窗（月薪喵 / 大肥鱼）
+基于 111 KB 原生 C# 引擎 (JianYingEngine.exe)，配备 GDI+ 分层动画桌面宠物悬浮球与毛玻璃控制面板：
+• 【01 批量导出】：「收起至首页 · 后台」与「等待完成 · 逐个」双模式自动匹配坐标；支持 F8 录制坐标（带月薪喵气泡实时引导與窗口平移补偿）、F10 紧急中断、单次 AI 极速截图识别草稿名称（导出时自动隐藏悬浮窗防遮挡）。
+• 【✂️ 自动拆集】：一键扫描草稿目录中的「XXX上」，自动复制生成「XXX下」并将原草稿出点无缝设为新草稿入点，无需重启剪映即可识别。
+• 【02 字幕工程】：一键提取全套 SRT 字幕、隐藏/显示草稿字幕轨道，以及原生 C#「检查并还原标准标点」（直接扫描草稿 JSON 将受保护标点 1:1 无损还原为标准 . 与 ,，保留花字样式与时间轴，含 SHA-256 校验与自动备份）。
+• 【03 批量改名 & 04 样片水印】：支持按集数模板或 AI 批量重命名；内置 25 KB 原生 Windows Media Foundation 硬件加速水印引擎 (WatermarkEngine.exe)，零 FFmpeg 依赖高速批量压制样片水印。`
+};
+
 GUIDE_DATA["xiaoma-editor-csharp"] = {
-  ...GUIDE_DATA["xiaoma-editor"],
-  title: "LazyCut-基于XM剪辑台的C#重构版 · 详细功能说明",
-  category: "01 // LAZYCUT (C# .NET EDITION)"
+  title: "LazyCut · 详细功能说明",
+  category: "01 // LAZYCUT · C# .NET 原生重构版",
+  videoUrl: null,
+  steps: [
+    lazyCutCoreFeaturesStep,
+    ...GUIDE_DATA["xiaoma-editor"].steps.map(step => ({
+      ...step,
+      title: step.title.replace(/小马剪辑台|XM剪辑台/g, "LazyCut"),
+      desc: step.desc.replace(/小马剪辑台|XM剪辑台/g, "LazyCut")
+    }))
+  ]
 };
 GUIDE_DATA["xiaoma-editor"].title = "XM剪辑台 · 详细功能说明";
 GUIDE_DATA["xiaoma-editor"].category = "02 // XM EDITING STUDIO";
