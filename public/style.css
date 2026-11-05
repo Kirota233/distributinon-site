@@ -302,22 +302,17 @@ html, body {
   letter-spacing: 0.02em;
 }
 
-/* 简介文字高度锁定（4行空间统一对齐） */
+/* 简介文字高度锁定（2行空间统一对齐） */
 .item-desc {
   font-size: 0.84rem;
   color: var(--text-muted);
   line-height: 1.45;
-  height: 80px;
+  height: 42px;
   margin-bottom: 1rem;
   display: -webkit-box;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-}
-
-.item-desc strong {
-  color: var(--text);
-  font-weight: 800;
 }
 
 /* 版本与更新时间引用框（绝对数学对齐） */
